@@ -4,9 +4,15 @@ import { ProtectedRoutes } from "./context/ProtectedRoutes";
 import { RoleRoute } from "./context/RoleRoute";
 
 import Login from "./pages/Login";
+import Permissions from "./pages/Permissions";
+import Modules from "./pages/Modules";
 import Dashboard from "./pages/Dashboard";
 import AdminUsers from "./pages/AdminUsers";
 import Audit from "./pages/Audit";
+import Employees from "./pages/Employees";
+import Assets from "./pages/Assets";
+import AssetDetail from "./pages/AssetsDetail";
+import AssetCreate from "./pages/AssetCreate";
 
 export default function App() {
   return (
@@ -37,6 +43,56 @@ export default function App() {
             element={
               <RoleRoute allow={["admin", "auditor"]}>
                 <Audit />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/employees"
+            element={
+              <RoleRoute allow={["admin"]}>
+                <Employees />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/assets"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <Assets />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/assets/:id"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <AssetDetail />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/assets/new"
+            element={
+              <RoleRoute allow={["admin"]}>
+                <AssetCreate />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/settings/permissions"
+            element={
+              <RoleRoute allow={["admin"]}>
+                <Permissions />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/settings/modules"
+            element={
+              <RoleRoute allow={["admin"]}>
+                <Modules />
               </RoleRoute>
             }
           />

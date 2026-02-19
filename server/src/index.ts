@@ -10,6 +10,10 @@ import { auditContext } from "./middleware/auditContext";
 import { authRoutes } from "./routes/auth.routes";
 import { usersRoutes } from "./routes/users.routes";
 import { auditRoutes } from "./routes/audit.routes";
+import { assetsRoutes } from "./routes/assets.routes";
+import { employeesRoutes } from "./routes/employees.routes";
+import { modulesRoutes } from "./routes/modules.routes";
+import { permissionsRoutes } from "./routes/permissions.routes";
 
 async function main() {
   await connectDB();
@@ -32,6 +36,10 @@ async function main() {
   app.use("/api/auth", authRoutes);
   app.use("/api/users", usersRoutes);
   app.use("/api/audit", auditRoutes);
+  app.use("/api/assets", assetsRoutes);
+  app.use("/api/employees", employeesRoutes);
+  app.use("/api/modules", modulesRoutes);
+  app.use("/api/permissions", permissionsRoutes);
 
   app.listen(ENV.PORT, () =>
     console.log(`API running on http://localhost:${ENV.PORT}`),

@@ -7,6 +7,8 @@ import { writeAssetEvent } from "../utils/assetEvents";
 const createSchema = z.object({
   assetTag: z.string().min(2),
   name: z.string().min(2),
+  brand: z.string().min(1),
+  model: z.string().min(1),
   category: z.enum([
     "laptop",
     "pc",
@@ -17,7 +19,7 @@ const createSchema = z.object({
     "printer",
     "other",
   ]),
-  serialNumber: z.string().nullable().optional(),
+  serialNumber: z.string().optional(),
   status: z.enum(["active", "in-repair", "retired"]).default("active"),
   specs: z.any().optional(),
   notes: z.string().optional(),
@@ -33,6 +35,8 @@ const listSchema = z.object({
 
 const patchSchema = z.object({
   name: z.string().min(2).optional(),
+  brand: z.string().min(1).optional(),
+  model: z.string().min(1).optional(),
   category: z
     .enum([
       "laptop",
@@ -151,13 +155,13 @@ export async function patchAsset(req: Request, res: Response) {
   if (!parsed.success)
     return res.status(400).json({ message: "Invalid payload" });
 
-  const before = await Asset.findById(req.params.id);
-  if (!before) return res.status(404).json({ message: "Not found" });
+  const doc = await Asset.findById(req.params.id);
+  if (!doc) return res.status(404).json({ message: "Not found" });
 
-  before.set(parsed.data as any);
-  await before.save();
-
-  const after = before.toObject();
+  const before = doc.toObject();
+  doc.set(parsed.data as any);
+  await doc.save();
+  const after = doc.toObject();
 
   await writeAudit({
     action: "ASSET_UPDATE",
@@ -166,18 +170,18 @@ export async function patchAsset(req: Request, res: Response) {
     actorUserId: actor?.sub,
     actorUsername: actor?.username,
     entityType: "Asset",
-    entityId: String(before._id),
-    summary: `Updated asset ${before.assetTag}`,
-    before: (before as any)._doc, // note: Mongoose internal; OK for now
+    entityId: String(doc._id),
+    summary: `Updated asset ${doc.assetTag}`,
+    before,
     after,
     ip: auditCtx.ip,
     userAgent: auditCtx.userAgent,
   });
 
   await writeAssetEvent({
-    assetId: String(before._id),
+    assetId: String(doc._id),
     type: "UPDATE_DETAILS",
-    before: (before as any)._doc,
+    before,
     after,
     note: "Asset details updated",
     actorUserId: actor?.sub,

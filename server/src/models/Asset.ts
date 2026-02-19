@@ -2,8 +2,12 @@ import { Schema, model, type InferSchemaType } from "mongoose";
 
 const assignmentSchema = new Schema(
   {
-    assigneeType: { type: String, enum: ["user", "external"], required: true },
-    assigneeId: { type: Schema.Types.ObjectId, ref: "User" },
+    assigneeType: {
+      type: String,
+      enum: ["employee", "external"],
+      required: true,
+    },
+    employeeId: { type: Schema.Types.ObjectId, ref: "Employee" }, // only if employee
     assigneeName: { type: String, required: true },
     assignedAt: { type: Date, required: true },
   },
@@ -20,6 +24,10 @@ const assetSchema = new Schema(
       trim: true,
     },
     name: { type: String, required: true, trim: true },
+
+    brand: { type: String, required: true, trim: true, index: true },
+    model: { type: String, required: true, trim: true, index: true },
+
     category: {
       type: String,
       required: true,
@@ -35,7 +43,7 @@ const assetSchema = new Schema(
       ],
       index: true,
     },
-    serialNumber: { type: String, index: true, trim: true, default: null },
+    serialNumber: { type: String, index: true, trim: true },
     status: {
       type: String,
       required: true,
@@ -43,14 +51,15 @@ const assetSchema = new Schema(
       index: true,
     },
     currentAssignment: { type: assignmentSchema, default: null },
-    specs: { type: Schema.Types.Mixed, default: undefined },
-    notes: { type: String, default: undefined },
+    specs: { type: Schema.Types.Mixed },
+    notes: { type: String },
   },
   { timestamps: true },
 );
 
 assetSchema.index({ createdAt: -1 });
 assetSchema.index({ category: 1, status: 1, createdAt: -1 });
+assetSchema.index({ brand: 1, model: 1 });
 
 export type AssetDoc = InferSchemaType<typeof assetSchema>;
-export const Asset = model<AssetDoc>("Asset", assetSchema);
+export const Asset = model("Asset", assetSchema);

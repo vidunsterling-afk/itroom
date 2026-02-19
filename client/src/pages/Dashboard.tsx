@@ -28,6 +28,20 @@ export default function Dashboard() {
         <div className="mt-6 grid gap-4">
           <HasRole roles={["admin"]}>
             <DashboardNavCard
+              to="/settings/permissions"
+              title="User Permissions"
+              description="Configure access per module"
+            />
+          </HasRole>
+          <HasRole roles={["admin"]}>
+            <DashboardNavCard
+              to="/settings/modules"
+              title="Modules"
+              description="Configure system modules + actions"
+            />
+          </HasRole>
+          <HasRole roles={["admin"]}>
+            <DashboardNavCard
               to="/admin/users"
               title="User Management"
               description="Create users (admin only)"
@@ -39,6 +53,20 @@ export default function Dashboard() {
               to="/audit"
               title="Audit Trail"
               description="View tracked activity"
+            />
+          </HasRole>
+          <HasRole roles={["admin", "auditor"]}>
+            <DashboardNavCard
+              to="/employees"
+              title="Employees"
+              description="Manage employee directory"
+            />
+          </HasRole>
+          <HasRole roles={["admin", "auditor", "staff"]}>
+            <DashboardNavCard
+              to="/assets"
+              title="Assets"
+              description="Manage inventory and assignments"
             />
           </HasRole>
         </div>

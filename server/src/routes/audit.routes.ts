@@ -1,8 +1,7 @@
 import { Router } from "express";
-import { listAudit } from "../controllers/audit.controller";
 import { authRequired } from "../middleware/authRequired";
-import { requireRole } from "../middleware/requireRole";
+import { requirePerm } from "../middleware/requirePerm";
+import { listAudit } from "../controllers/audit.controller";
 
 export const auditRoutes = Router();
-
-auditRoutes.get("/", authRequired, requireRole("admin", "auditor"), listAudit);
+auditRoutes.get("/", authRequired, requirePerm("audit", "read"), listAudit);
