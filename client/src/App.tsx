@@ -13,6 +13,16 @@ import Employees from "./pages/Employees";
 import Assets from "./pages/Assets";
 import AssetDetail from "./pages/AssetsDetail";
 import AssetCreate from "./pages/AssetCreate";
+import Licenses from "./pages/Licenses";
+import LicenseCreate from "./pages/LicenseCreate";
+import LicenseDetail from "./pages/LicenseDetails";
+import Repairs from "./pages/Repairs";
+import RepairUpsert from "./pages/RepairUpsert";
+import RepairDetail from "./pages/RepairDetail";
+import FingerprintEnrollmentDetail from "./pages/FingerprintEnrollmentDetail";
+import FingerprintEnrollmentCreate from "./pages/FingerprintEnrollmentCreate";
+import FingerprintEnrollments from "./pages/FingerprintEnrollments";
+import FingerprintMachines from "./pages/FingerprintMachines";
 
 export default function App() {
   return (
@@ -93,6 +103,103 @@ export default function App() {
             element={
               <RoleRoute allow={["admin"]}>
                 <Modules />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/licenses"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <Licenses />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/licenses/new"
+            element={
+              <RoleRoute allow={["admin"]}>
+                <LicenseCreate />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/licenses/:id"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <LicenseDetail />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/repairs"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <Repairs />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/repairs/new"
+            element={
+              <RoleRoute allow={["admin", "staff"]}>
+                <RepairUpsert />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/repairs/:id"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <RepairDetail />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/repairs/:id/edit"
+            element={
+              <RoleRoute allow={["admin", "staff"]}>
+                <RepairUpsert />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/fingerprints/machines"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <FingerprintMachines />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/fingerprints/enrollments"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <FingerprintEnrollments />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/fingerprints/enrollments/new"
+            element={
+              <RoleRoute allow={["admin", "staff"]}>
+                <FingerprintEnrollmentCreate />
+              </RoleRoute>
+            }
+          />
+
+          <Route
+            path="/fingerprints/enrollments/:id"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <FingerprintEnrollmentDetail />
               </RoleRoute>
             }
           />

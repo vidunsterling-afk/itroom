@@ -5,6 +5,18 @@ import { getAccessToken } from "../lib/auth";
 import { useAuth } from "../context/useAuth";
 import { AssignEmployeeModal } from "../components/AssignEmployeeModal";
 import { ChangeStatusModal } from "../components/ChangeStatusModal";
+import Layout from "../components/Layout";
+
+type RepairMini = {
+  _id: string;
+  vendorName: string;
+  status: string;
+  cost: number;
+  reportedAt: string;
+  isWarrantyClaim: boolean;
+  warrantyExpiry?: string;
+  issue: string;
+};
 
 type Asset = {
   _id: string;
@@ -43,6 +55,7 @@ export default function AssetDetail() {
   const [events, setEvents] = useState<AssetEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState<string | null>(null);
+  const [repairs, setRepairs] = useState<RepairMini[]>([]);
 
   const [assignOpen, setAssignOpen] = useState(false);
   const [statusOpen, setStatusOpen] = useState(false);
@@ -67,8 +80,17 @@ export default function AssetDetail() {
         },
       );
 
+      const rep = await apiFetch<{ items: RepairMini[] }>(
+        `/api/repairs/asset/${id}`,
+        {
+          method: "GET",
+          headers: { Authorization: `Bearer ${token}` },
+        },
+      );
+
       setAsset(a.asset);
       setEvents(ev.items);
+      setRepairs(rep.items);
     } catch (e: unknown) {
       setErr(e instanceof Error ? e.message : "Failed to load asset");
     } finally {
@@ -125,146 +147,212 @@ export default function AssetDetail() {
   if (!asset) return null;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
-      <div className="max-w-5xl mx-auto">
-        <Link to="/assets" className="text-slate-300 hover:underline">
-          ← Back to Assets
-        </Link>
+    <Layout>
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-6">
+        <div className="max-w-5xl mx-auto">
+          <Link to="/assets" className="text-slate-300 hover:underline">
+            ← Back to Assets
+          </Link>
 
-        <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/30 p-5">
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <div className="flex flex-wrap items-center gap-2">
-                <h1 className="text-2xl font-semibold">{asset.assetTag}</h1>
-                <span className="text-slate-300">
-                  {asset.brand} {asset.model}
-                </span>
-                <span className="text-xs rounded-lg border border-slate-800 px-2 py-1 text-slate-300">
-                  {asset.category}
-                </span>
-                <span
-                  className={`text-xs px-2 py-1 rounded-lg border ${
-                    asset.status === "active"
-                      ? "border-emerald-900 text-emerald-200 bg-emerald-950/20"
-                      : asset.status === "in-repair"
-                        ? "border-amber-900 text-amber-200 bg-amber-950/20"
-                        : "border-slate-700 text-slate-300 bg-slate-900/20"
-                  }`}
-                >
-                  {asset.status}
-                </span>
-              </div>
-
-              <p className="mt-2 text-slate-300">{asset.name}</p>
-
-              <div className="mt-2 text-sm text-slate-400">
-                Serial:{" "}
-                <span className="text-slate-200">
-                  {asset.serialNumber ?? "—"}
-                </span>
-              </div>
-
-              <div className="mt-2 text-sm text-slate-400">
-                Assigned to:{" "}
-                <span className="text-slate-200">
-                  {asset.currentAssignment?.assigneeName ?? "—"}
-                </span>
-                {asset.currentAssignment?.assignedAt ? (
-                  <span className="text-slate-500">
-                    {" "}
-                    • since{" "}
-                    {new Date(
-                      asset.currentAssignment.assignedAt,
-                    ).toLocaleDateString()}
+          <div className="mt-4 rounded-2xl border border-slate-800 bg-slate-900/30 p-5">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h1 className="text-2xl font-semibold">{asset.assetTag}</h1>
+                  <span className="text-slate-300">
+                    {asset.brand} {asset.model}
                   </span>
-                ) : null}
+                  <span className="text-xs rounded-lg border border-slate-800 px-2 py-1 text-slate-300">
+                    {asset.category}
+                  </span>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-lg border ${
+                      asset.status === "active"
+                        ? "border-emerald-900 text-emerald-200 bg-emerald-950/20"
+                        : asset.status === "in-repair"
+                          ? "border-amber-900 text-amber-200 bg-amber-950/20"
+                          : "border-slate-700 text-slate-300 bg-slate-900/20"
+                    }`}
+                  >
+                    {asset.status}
+                  </span>
+                </div>
+
+                <p className="mt-2 text-slate-300">{asset.name}</p>
+
+                <div className="mt-2 text-sm text-slate-400">
+                  Serial:{" "}
+                  <span className="text-slate-200">
+                    {asset.serialNumber ?? "—"}
+                  </span>
+                </div>
+
+                <div className="mt-2 text-sm text-slate-400">
+                  Assigned to:{" "}
+                  <span className="text-slate-200">
+                    {asset.currentAssignment?.assigneeName ?? "—"}
+                  </span>
+                  {asset.currentAssignment?.assignedAt ? (
+                    <span className="text-slate-500">
+                      {" "}
+                      • since{" "}
+                      {new Date(
+                        asset.currentAssignment.assignedAt,
+                      ).toLocaleDateString()}
+                    </span>
+                  ) : null}
+                </div>
+
+                {asset.notes && (
+                  <div className="mt-3 text-sm text-slate-300">
+                    {asset.notes}
+                  </div>
+                )}
               </div>
 
-              {asset.notes && (
-                <div className="mt-3 text-sm text-slate-300">{asset.notes}</div>
+              {canWrite && (
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setAssignOpen(true)}
+                    className="rounded-xl bg-slate-100 text-slate-950 px-4 py-2 font-medium hover:opacity-90"
+                  >
+                    Assign
+                  </button>
+
+                  <button
+                    onClick={unassign}
+                    disabled={!asset.currentAssignment}
+                    className="rounded-xl border border-slate-800 px-4 py-2 hover:bg-slate-900 disabled:opacity-50"
+                  >
+                    Unassign
+                  </button>
+
+                  <button
+                    onClick={() => setStatusOpen(true)}
+                    className="rounded-xl border border-slate-800 px-4 py-2 hover:bg-slate-900"
+                  >
+                    Change Status
+                  </button>
+                </div>
               )}
             </div>
+          </div>
 
-            {canWrite && (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  onClick={() => setAssignOpen(true)}
-                  className="rounded-xl bg-slate-100 text-slate-950 px-4 py-2 font-medium hover:opacity-90"
-                >
-                  Assign
-                </button>
+          {err && (
+            <div className="max-w-5xl mx-auto mt-4 rounded-2xl border border-red-900 bg-red-950/30 p-4 text-red-200">
+              {err}
+            </div>
+          )}
 
-                <button
-                  onClick={unassign}
-                  disabled={!asset.currentAssignment}
-                  className="rounded-xl border border-slate-800 px-4 py-2 hover:bg-slate-900 disabled:opacity-50"
-                >
-                  Unassign
-                </button>
-
-                <button
-                  onClick={() => setStatusOpen(true)}
-                  className="rounded-xl border border-slate-800 px-4 py-2 hover:bg-slate-900"
-                >
-                  Change Status
-                </button>
+          <div className="mt-6 rounded-2xl border border-slate-800 overflow-hidden">
+            <div className="bg-slate-900/40 px-4 py-3 text-sm text-slate-300">
+              Timeline (latest 25)
+            </div>
+            {events.length === 0 ? (
+              <div className="p-4 text-slate-400">No events</div>
+            ) : (
+              <div className="divide-y divide-slate-800">
+                {events.map((ev) => (
+                  <div key={ev._id} className="p-4 hover:bg-slate-900/30">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className="text-slate-200 font-medium">
+                        {ev.type}
+                      </span>
+                      <span className="text-slate-500 text-sm">
+                        {new Date(ev.createdAt).toLocaleString()}
+                      </span>
+                      <span className="text-slate-400 text-sm">
+                        • {ev.actorUsername ?? "system"}
+                      </span>
+                    </div>
+                    {ev.note && (
+                      <div className="mt-1 text-sm text-slate-300">
+                        {ev.note}
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             )}
           </div>
-        </div>
 
-        {err && (
-          <div className="max-w-5xl mx-auto mt-4 rounded-2xl border border-red-900 bg-red-950/30 p-4 text-red-200">
-            {err}
-          </div>
-        )}
-
-        <div className="mt-6 rounded-2xl border border-slate-800 overflow-hidden">
-          <div className="bg-slate-900/40 px-4 py-3 text-sm text-slate-300">
-            Timeline (latest 25)
-          </div>
-          {events.length === 0 ? (
-            <div className="p-4 text-slate-400">No events</div>
-          ) : (
-            <div className="divide-y divide-slate-800">
-              {events.map((ev) => (
-                <div key={ev._id} className="p-4 hover:bg-slate-900/30">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className="text-slate-200 font-medium">
-                      {ev.type}
-                    </span>
-                    <span className="text-slate-500 text-sm">
-                      {new Date(ev.createdAt).toLocaleString()}
-                    </span>
-                    <span className="text-slate-400 text-sm">
-                      • {ev.actorUsername ?? "system"}
-                    </span>
-                  </div>
-                  {ev.note && (
-                    <div className="mt-1 text-sm text-slate-300">{ev.note}</div>
-                  )}
-                </div>
-              ))}
+          <div className="mt-6 rounded-2xl border border-slate-800 overflow-hidden">
+            <div className="bg-slate-900/40 px-4 py-3 text-sm text-slate-300 flex items-center justify-between">
+              <span>Repairs (latest 100)</span>
+              {canWrite && (
+                <Link
+                  to={`/repairs/new?assetId=${asset._id}`}
+                  className="rounded-lg bg-slate-100 text-slate-950 px-3 py-1 text-xs font-medium hover:opacity-90"
+                >
+                  + New Repair
+                </Link>
+              )}
             </div>
+
+            {repairs.length === 0 ? (
+              <div className="p-4 text-slate-400">No repair records</div>
+            ) : (
+              <div className="divide-y divide-slate-800">
+                {repairs.map((r) => (
+                  <Link
+                    key={r._id}
+                    to={`/repairs/${r._id}`}
+                    className="block p-4 hover:bg-slate-900/30"
+                  >
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          <span className="font-medium text-slate-100">
+                            {r.vendorName}
+                          </span>
+                          <span className="text-xs rounded-lg border border-slate-800 px-2 py-1 text-slate-300">
+                            {r.status}
+                          </span>
+                          {r.isWarrantyClaim && (
+                            <span className="text-xs rounded-lg border border-emerald-900 px-2 py-1 text-emerald-200 bg-emerald-950/20">
+                              warranty
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-1 text-sm text-slate-400">
+                          {r.issue} • Cost:{" "}
+                          <span className="text-slate-200">{r.cost ?? 0}</span>
+                          {r.warrantyExpiry ? (
+                            <span className="text-slate-500">
+                              {" "}
+                              • Warranty{" "}
+                              {new Date(r.warrantyExpiry).toLocaleDateString()}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                      <div className="text-sm text-slate-500">
+                        {new Date(r.reportedAt).toLocaleDateString()}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {assignOpen && (
+            <AssignEmployeeModal
+              assetId={asset._id}
+              onClose={() => setAssignOpen(false)}
+              onDone={loadAll}
+            />
+          )}
+
+          {statusOpen && (
+            <ChangeStatusModal
+              assetId={asset._id}
+              onClose={() => setStatusOpen(false)}
+              onDone={loadAll}
+            />
           )}
         </div>
-
-        {assignOpen && (
-          <AssignEmployeeModal
-            assetId={asset._id}
-            onClose={() => setAssignOpen(false)}
-            onDone={loadAll}
-          />
-        )}
-
-        {statusOpen && (
-          <ChangeStatusModal
-            assetId={asset._id}
-            onClose={() => setStatusOpen(false)}
-            onDone={loadAll}
-          />
-        )}
       </div>
-    </div>
+    </Layout>
   );
 }
