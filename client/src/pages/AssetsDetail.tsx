@@ -625,7 +625,7 @@ export default function AssetDetail() {
           {/* Modals */}
           {assignOpen && (
             <AssignEmployeeModal
-              assetId={asset._id}
+              asset={asset}
               onClose={() => setAssignOpen(false)}
               onDone={loadAll}
             />

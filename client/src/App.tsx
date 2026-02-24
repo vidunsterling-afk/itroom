@@ -24,12 +24,17 @@ import FingerprintEnrollmentCreate from "./pages/FingerprintEnrollmentCreate";
 import FingerprintEnrollments from "./pages/FingerprintEnrollments";
 import FingerprintMachines from "./pages/FingerprintMachines";
 
+// Tests
+import TestEmail from "./components/TestSendEmail";
+
 export default function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <Routes>
           <Route path="/login" element={<Login />} />
+
+          <Route path="/email/test" element={<TestEmail />} />
 
           <Route
             path="/"

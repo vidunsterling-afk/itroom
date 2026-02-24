@@ -1,4 +1,4 @@
-// components/AssignEmployeeModal.tsx
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useEffect, useState } from "react";
 import { fetchEmployeesMini, type EmployeeMini } from "../lib/employees";
 import { apiFetch } from "../lib/api";
@@ -15,16 +15,28 @@ import {
   Info,
   RefreshCw,
 } from "lucide-react";
+import { sendAssignmentEmail } from "../email/helpers/sendAssignmentEmail";
+import { useAuth } from "../context/useAuth";
 
 export function AssignEmployeeModal({
-  assetId,
+  asset,
   onClose,
   onDone,
 }: {
-  assetId: string;
+  asset: {
+    _id: string;
+    assetTag: string;
+    name: string;
+    brand: string;
+    model: string;
+    category: string;
+    serialNumber?: string;
+  };
   onClose: () => void;
   onDone: () => void;
 }) {
+  const assetId = asset._id;
+  const { user } = useAuth();
   const [q, setQ] = useState("");
   const [employees, setEmployees] = useState<EmployeeMini[]>([]);
   const [selected, setSelected] = useState<string>("");
@@ -33,6 +45,7 @@ export function AssignEmployeeModal({
   const [loading, setLoading] = useState(true);
   const [searching, setSearching] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const selectedEmployee = employees.find((e) => e._id === selected);
 
   async function load(searchQuery = q) {
     setLoading(true);
@@ -84,6 +97,40 @@ export function AssignEmployeeModal({
         }),
       });
 
+      try {
+        const to = (selectedEmployee as any).email as string | undefined;
+        if (!to) {
+          console.warn("No employee email found; skipping email notification.");
+        } else {
+          if (selectedEmployee) {
+            await sendAssignmentEmail({
+              token,
+              employee: {
+                _id: selectedEmployee._id || "",
+                employeeId: selectedEmployee.employeeId,
+                fullName: selectedEmployee.fullName,
+                email: to,
+                department: selectedEmployee.department,
+              },
+              asset: {
+                _id: assetId,
+                assetTag: asset.assetTag,
+                name: asset.name,
+                brand: asset.brand,
+                model: asset.model,
+                category: asset.category,
+                serialNumber: asset.serialNumber,
+              },
+              note: note.trim() || undefined,
+              assignedBy: user?.username,
+            });
+          }
+        }
+      } catch (emailErr) {
+        console.warn("Email failed:", emailErr);
+        // optional: show a warning UI instead of failing the whole action
+      }
+
       onDone();
       onClose();
     } catch (e: unknown) {
@@ -92,8 +139,6 @@ export function AssignEmployeeModal({
       setIsSubmitting(false);
     }
   }
-
-  const selectedEmployee = employees.find((e) => e._id === selected);
 
   return (
     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4 z-50">
