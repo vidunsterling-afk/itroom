@@ -58,6 +58,7 @@ type Asset = {
     assigneeType: "employee" | "external";
     employeeId?: string;
     assigneeName: string;
+    assigneeEmail?: string;
     assignedAt: string;
   };
   createdAt: string;
@@ -532,7 +533,9 @@ export default function AssetDetail() {
                 </div>
                 {canWrite && (
                   <Link
-                    to={`/repairs/new?assetId=${asset._id}`}
+                    to={`/repairs/new?assetId=${asset._id}&to=${encodeURIComponent(
+                      asset.currentAssignment?.assigneeEmail || "",
+                    )}`}
                     className="flex items-center space-x-1 px-3 py-1.5 rounded-lg bg-gradient-to-r from-amber-500/20 to-orange-500/20 border border-amber-500/30 hover:from-amber-500/30 hover:to-orange-500/30 transition-all"
                   >
                     <Plus className="w-4 h-4 text-amber-400" />

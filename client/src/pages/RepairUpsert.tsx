@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams, useLocation, Link } from "react-router-dom";
 import { apiFetch } from "../lib/api";
@@ -20,6 +21,8 @@ import {
   Settings,
   CheckCircle,
 } from "lucide-react";
+import { sendRepairCreatedEmail } from "../email/helpers/repairEmail";
+import { useAuth } from "../context/useAuth";
 
 type Repair = {
   _id: string;
@@ -44,6 +47,7 @@ export default function RepairUpsert() {
   const loc = useLocation();
   const { id } = useParams();
   const editing = !!id;
+  const { user } = useAuth();
 
   const [assetId, setAssetId] = useState("");
   const [vendorName, setVendorName] = useState("");
@@ -58,11 +62,20 @@ export default function RepairUpsert() {
   const [err, setErr] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  const [toEmail, setToEmail] = useState("");
+  const [originalStatus, setOriginalStatus] = useState<string>("");
+
   useEffect(() => {
     if (editing) return;
     const params = new URLSearchParams(loc.search);
+
     const a = params.get("assetId");
     if (a) setAssetId(a);
+
+    const to = params.get("to");
+    if (typeof to === "string" && to.trim().length > 0) {
+      setToEmail(to.trim());
+    }
   }, [editing, loc.search]);
 
   useEffect(() => {
@@ -82,6 +95,7 @@ export default function RepairUpsert() {
         setVendorName(r.vendorName);
         setCost(r.cost ?? 0);
         setStatus(r.status);
+        setOriginalStatus(r.status);
         setIssue(r.issue);
         setResolution(r.resolution ?? "");
         setIsWarrantyClaim(!!r.isWarrantyClaim);
@@ -108,7 +122,6 @@ export default function RepairUpsert() {
       if (!vendorName.trim()) throw new Error("Vendor name is required");
       if (!issue.trim()) throw new Error("Issue description is required");
 
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const payload: any = {
         vendorName: vendorName.trim(),
         cost,
@@ -126,7 +139,7 @@ export default function RepairUpsert() {
       if (!editing) payload.assetId = assetId.trim();
 
       if (!editing) {
-        const data = await apiFetch<{ repair: { _id: string } }>(
+        const data = await apiFetch<{ repair: Repair & { _id: string } }>(
           "/api/repairs",
           {
             method: "POST",
@@ -134,6 +147,29 @@ export default function RepairUpsert() {
             body: JSON.stringify(payload),
           },
         );
+
+        const assetIdTrimmed = assetId.trim();
+        const asset = await apiFetch<{ asset: any }>(
+          `/api/assets/${assetIdTrimmed}`,
+          {
+            method: "GET",
+            headers: { Authorization: `Bearer ${token}` },
+          },
+        );
+
+        await sendRepairCreatedEmail({
+          token,
+          to: toEmail || "sterlingsteels.it@gmail.com",
+          createdBy: user?.username,
+          repair: {
+            ...payload,
+            _id: data.repair._id,
+            assetId,
+            reportedAt: new Date().toISOString(),
+          },
+          asset: asset.asset,
+        });
+
         nav(`/repairs/${data.repair._id}`, { replace: true });
       } else {
         await apiFetch(`/api/repairs/${id}`, {
@@ -141,6 +177,44 @@ export default function RepairUpsert() {
           headers: { Authorization: `Bearer ${token}` },
           body: JSON.stringify(payload),
         });
+
+        // If status changed, send email
+        const newStatus = status;
+        const oldStatus = originalStatus;
+
+        if (oldStatus && newStatus && oldStatus !== newStatus) {
+          // fetch asset to get assignee email (better than query param)
+          const assetRes = await apiFetch<{ asset: any }>(
+            `/api/assets/${assetId}`,
+            {
+              method: "GET",
+              headers: { Authorization: `Bearer ${token}` },
+            },
+          );
+
+          const to =
+            assetRes.asset?.currentAssignment?.assigneeEmail ||
+            "sterlingsteels.it@gmail.com";
+
+          console.log(to);
+          try {
+            const { sendRepairStatusChangedEmail } =
+              await import("../email/helpers/repairStatusEmail");
+
+            await sendRepairStatusChangedEmail({
+              token,
+              to,
+              createdBy: user?.username,
+              asset: assetRes.asset,
+              repair: { ...payload, _id: id, assetId },
+              oldStatus,
+              newStatus,
+            });
+          } catch (mailErr) {
+            console.warn("Status email failed:", mailErr);
+          }
+        }
+
         nav(`/repairs/${id}`, { replace: true });
       }
     } catch (e: unknown) {

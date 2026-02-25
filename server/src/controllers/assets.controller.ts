@@ -3,6 +3,7 @@ import { z } from "zod";
 import { Asset } from "../models/Asset";
 import { writeAudit } from "../utils/audit";
 import { writeAssetEvent } from "../utils/assetEvents";
+import { Employee } from "../models/Employee";
 
 const createSchema = z.object({
   assetTag: z.string().min(2),
@@ -102,7 +103,32 @@ export async function listAssets(req: Request, res: Response) {
 export async function getAsset(req: Request, res: Response) {
   const asset = await Asset.findById(req.params.id).lean();
   if (!asset) return res.status(404).json({ message: "Not found" });
-  res.json({ asset });
+
+  let assigneeEmail: string | null = null;
+
+  if (
+    asset.currentAssignment?.assigneeType === "employee" &&
+    asset.currentAssignment.employeeId
+  ) {
+    const emp = await Employee.findById(asset.currentAssignment.employeeId)
+      .select("email")
+      .lean();
+
+    assigneeEmail = emp?.email ?? null;
+  }
+
+  // Return asset + computed field
+  return res.json({
+    asset: {
+      ...asset,
+      currentAssignment: asset.currentAssignment
+        ? {
+            ...asset.currentAssignment,
+            assigneeEmail,
+          }
+        : null,
+    },
+  });
 }
 
 export async function createAsset(req: Request, res: Response) {
