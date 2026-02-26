@@ -18,6 +18,7 @@ import { licensesRoutes } from "./routes/licenses.routes";
 import { repairsRoutes } from "./routes/repairs.routes";
 import { fingerprintsRoutes } from "./routes/fingerprints.routes";
 import emailRoutes from "./routes/email.routes";
+import { emailLogRoutes } from "./routes/emailLogs.routes";
 
 async function main() {
   await connectDB();
@@ -49,6 +50,7 @@ async function main() {
   app.use("/api/repairs", repairsRoutes);
   app.use("/api/fingerprints", fingerprintsRoutes);
   app.use("/api/email", emailRoutes);
+  app.use("/api/email-logs", emailLogRoutes);
 
   app.listen(ENV.PORT, () =>
     console.log(`API running on http://localhost:${ENV.PORT}`),

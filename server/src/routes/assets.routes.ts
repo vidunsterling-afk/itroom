@@ -7,6 +7,7 @@ import {
   getAsset,
   createAsset,
   patchAsset,
+  getAssetCounts,
 } from "../controllers/assets.controller";
 import {
   assignAsset,
@@ -19,6 +20,12 @@ export const assetsRoutes = Router();
 
 // read
 assetsRoutes.get("/", authRequired, requirePerm("assets", "read"), listAssets);
+assetsRoutes.get(
+  "/counts",
+  authRequired,
+  requirePerm("assets", "read"),
+  getAssetCounts,
+);
 assetsRoutes.get("/:id", authRequired, requirePerm("assets", "read"), getAsset);
 assetsRoutes.get(
   "/:id/events",

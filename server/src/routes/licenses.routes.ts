@@ -7,6 +7,7 @@ import {
   getLicense,
   createLicense,
   patchLicense,
+  getLicenseCounts,
 } from "../controllers/licenses.controller";
 import {
   listLicenseAssignments,
@@ -22,6 +23,12 @@ licensesRoutes.get(
   authRequired,
   requirePerm("licenses", "read"),
   listLicenses,
+);
+licensesRoutes.get(
+  "/counts",
+  authRequired,
+  requirePerm("licenses", "read"),
+  getLicenseCounts,
 );
 licensesRoutes.get(
   "/:id",

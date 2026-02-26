@@ -87,6 +87,30 @@ export async function getLicense(req: Request, res: Response) {
   res.json({ license: doc });
 }
 
+export async function getLicenseCounts(req: Request, res: Response) {
+  try {
+    const now = new Date();
+    const in30Days = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+
+    const [total, expiring30] = await Promise.all([
+      License.countDocuments(),
+      License.countDocuments({
+        expiresAt: { $gte: now, $lte: in30Days },
+        isActive: true, // only active licenses expiring
+      }),
+    ]);
+
+    return res.json({
+      total,
+      expiring30,
+    });
+  } catch (error) {
+    return res.status(500).json({
+      message: "Failed to fetch license counts",
+    });
+  }
+}
+
 export async function createLicense(req: Request, res: Response) {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success)

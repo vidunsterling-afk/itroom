@@ -68,6 +68,24 @@ export async function getEmployee(req: Request, res: Response) {
   res.json({ employee: emp });
 }
 
+export async function getEmployeeCounts(req: Request, res: Response) {
+  try {
+    const [total, active, inactive] = await Promise.all([
+      Employee.countDocuments(),
+      Employee.countDocuments({ isActive: true }),
+      Employee.countDocuments({ isActive: false }),
+    ]);
+
+    return res.json({
+      total,
+      active,
+      inactive,
+    });
+  } catch (error) {
+    return res.status(500).json({ message: "Failed to fetch employee counts" });
+  }
+}
+
 export async function createEmployee(req: Request, res: Response) {
   const parsed = createSchema.safeParse(req.body);
   if (!parsed.success)

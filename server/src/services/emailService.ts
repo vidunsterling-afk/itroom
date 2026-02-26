@@ -1,6 +1,7 @@
 import "isomorphic-fetch";
 import { Client } from "@microsoft/microsoft-graph-client";
 import { ClientSecretCredential } from "@azure/identity";
+import { logEmailSent, logEmailFailed } from "../utils/emailLogger";
 
 export type EmailRecipients = string | string[];
 
@@ -60,10 +61,7 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
 
   const message = {
     subject,
-    body: {
-      contentType: "HTML" as const,
-      content: html,
-    },
+    body: { contentType: "HTML" as const, content: html },
     toRecipients: normalizeRecipients(to),
   } as {
     subject: string;
@@ -75,21 +73,23 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
   const ccRecipients = normalizeRecipients(cc);
   if (ccRecipients.length) message.ccRecipients = ccRecipients;
 
-  // Graph sendMail payload
-  const payload = {
-    message,
-    saveToSentItems,
-  };
+  const payload = { message, saveToSentItems };
 
   try {
     await graphClient.api(`/users/${sender}/sendMail`).post(payload);
+
+    // ✅ log success (don’t store html body)
+    await logEmailSent({ to, cc, subject });
   } catch (err: any) {
-    // Graph errors often live in err.body or err.response?.data; keep it safe
     const detail =
       err?.body?.error?.message ||
       err?.response?.data?.error?.message ||
       err?.message ||
       "Unknown error";
+
+    // ✅ log failure
+    await logEmailFailed({ to, cc, subject, error: detail });
+
     throw new Error(`Graph sendMail failed: ${detail}`);
   }
 }

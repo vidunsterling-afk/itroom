@@ -17,20 +17,113 @@ import {
   Wrench,
   Fingerprint,
   BarChart3,
-  Clock,
-  AlertCircle,
 } from "lucide-react";
+import { useEffect, useState } from "react";
+import { getAccessToken } from "../lib/auth";
+import { apiFetch } from "../lib/api";
+import { Clock9 } from "../components/animate-ui/icons/clock-9";
 
 export default function Dashboard() {
   const stats = {
     systemStatus: "Operational",
-    activeUsers: 24,
-    totalAssets: 156,
-    assignedAssets: 142,
-    availableAssets: 14,
-    pendingActions: 3,
-    expiringLicenses: 5,
   };
+
+  const [assetCounts, setAssetCounts] = useState<{
+    total: number;
+    assigned: number;
+    available: number;
+  }>({
+    total: 0,
+    assigned: 0,
+    available: 0,
+  });
+  const [employeeCounts, setEmployeeCounts] = useState<{
+    total: number;
+    active: number;
+    inactive: number;
+  }>({
+    total: 0,
+    active: 0,
+    inactive: 0,
+  });
+  const [licenseCounts, setLicenseCounts] = useState<{
+    total: number;
+    expiring30: number;
+  }>({
+    total: 0,
+    expiring30: 0,
+  });
+
+  async function loadAssetCounts() {
+    try {
+      const token = getAccessToken();
+      if (!token) throw new Error("No access token. Please login again.");
+
+      const data = await apiFetch<{
+        total: number;
+        assigned: number;
+        available: number;
+      }>(`/api/assets/counts`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setAssetCounts(data);
+    } catch (e: unknown) {
+      console.error(
+        e instanceof Error ? e.message : "Failed to load asset counts",
+      );
+    }
+  }
+
+  async function loadEmployeeCounts() {
+    try {
+      const token = getAccessToken();
+      if (!token) throw new Error("No access token. Please login again.");
+
+      const data = await apiFetch<{
+        total: number;
+        active: number;
+        inactive: number;
+      }>(`/api/employees/counts`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setEmployeeCounts(data);
+    } catch (e: unknown) {
+      console.error(
+        e instanceof Error ? e.message : "Failed to load employee counts",
+      );
+    }
+  }
+
+  async function loadLicenseCounts() {
+    try {
+      const token = getAccessToken();
+      if (!token) throw new Error("No access token. Please login again.");
+
+      const data = await apiFetch<{
+        total: number;
+        expiring30: number;
+      }>(`/api/licenses/counts`, {
+        method: "GET",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setLicenseCounts(data);
+    } catch (e: unknown) {
+      console.error(
+        e instanceof Error ? e.message : "Failed to load license counts",
+      );
+    }
+  }
+
+  useEffect(() => {
+    loadAssetCounts();
+    loadEmployeeCounts();
+    loadLicenseCounts();
+  }, []);
 
   return (
     <Layout>
@@ -51,7 +144,7 @@ export default function Dashboard() {
             {/* Quick Actions */}
             <div className="flex items-center space-x-3">
               <div className="flex items-center space-x-2 px-3 py-2 bg-slate-900/50 border border-slate-800 rounded-lg">
-                <Clock className="w-4 h-4 text-slate-400" />
+                <Clock9 className="w-4 h-4 text-slate-400" animate loop />
                 <span className="text-sm text-slate-300">
                   {new Date().toLocaleDateString("en-US", {
                     weekday: "short",
@@ -98,14 +191,21 @@ export default function Dashboard() {
                 <Users className="w-5 h-5 text-purple-400" />
               </div>
               <div className="mt-3">
-                <p className="text-sm text-slate-400">Active Users</p>
+                <p className="text-sm text-slate-400">Employees</p>
                 <div className="flex items-baseline mt-1">
                   <p className="text-xl font-semibold text-white">
-                    {stats.activeUsers}
+                    {employeeCounts.total}
                   </p>
-                  <span className="ml-2 text-xs text-green-400">+12%</span>
                 </div>
-                <p className="text-xs text-slate-500 mt-1">Currently online</p>
+                <div className="flex items-center space-x-2 mt-1">
+                  <span className="text-xs text-green-400">
+                    {employeeCounts.active} Active
+                  </span>
+                  <span className="text-xs text-slate-600">•</span>
+                  <span className="text-xs text-yellow-400">
+                    {employeeCounts.inactive} Inactive
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -119,15 +219,15 @@ export default function Dashboard() {
               <div className="mt-3">
                 <p className="text-sm text-slate-400">Asset Inventory</p>
                 <p className="text-xl font-semibold text-white mt-1">
-                  {stats.totalAssets}
+                  {assetCounts.total}
                 </p>
                 <div className="flex items-center space-x-2 mt-1">
                   <span className="text-xs text-green-400">
-                    {stats.assignedAssets} assigned
+                    {assetCounts.assigned} assigned
                   </span>
                   <span className="text-xs text-slate-600">•</span>
                   <span className="text-xs text-yellow-400">
-                    {stats.availableAssets} available
+                    {assetCounts.available} available
                   </span>
                 </div>
               </div>
@@ -138,15 +238,15 @@ export default function Dashboard() {
             <div className="absolute inset-0 bg-gradient-to-r from-red-500/10 to-pink-500/10 opacity-0 group-hover:opacity-100 transition-opacity" />
             <div className="relative">
               <div className="p-2 bg-red-500/10 rounded-lg">
-                <AlertCircle className="w-5 h-5 text-red-400" />
+                <Key className="w-5 h-5 text-red-400" />
               </div>
               <div className="mt-3">
-                <p className="text-sm text-slate-400">Action Required</p>
+                <p className="text-sm text-slate-400">Licenses Inventory</p>
                 <p className="text-xl font-semibold text-white mt-1">
-                  {stats.pendingActions}
+                  {licenseCounts.total}
                 </p>
                 <p className="text-xs text-red-400 mt-1">
-                  {stats.expiringLicenses} licenses expiring
+                  {licenseCounts.expiring30} licenses expiring in 30d
                 </p>
               </div>
             </div>

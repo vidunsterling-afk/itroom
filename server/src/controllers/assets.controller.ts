@@ -100,6 +100,31 @@ export async function listAssets(req: Request, res: Response) {
   res.json({ page, limit, total, totalPages: Math.ceil(total / limit), items });
 }
 
+export async function getAssetCounts(req: Request, res: Response) {
+  const category = (req.query.category as string | undefined)?.trim();
+  const status = (req.query.status as string | undefined)?.trim();
+
+  const baseFilter: Record<string, unknown> = {};
+  if (category) baseFilter.category = category;
+  if (status) baseFilter.status = status;
+
+  const [total, assigned] = await Promise.all([
+    Asset.countDocuments(baseFilter),
+    Asset.countDocuments({
+      ...baseFilter,
+      currentAssignment: { $ne: null },
+    }),
+  ]);
+
+  const available = total - assigned;
+
+  return res.json({
+    total,
+    assigned,
+    available,
+  });
+}
+
 export async function getAsset(req: Request, res: Response) {
   const asset = await Asset.findById(req.params.id).lean();
   if (!asset) return res.status(404).json({ message: "Not found" });

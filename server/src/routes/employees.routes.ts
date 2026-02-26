@@ -6,6 +6,7 @@ import {
   getEmployee,
   createEmployee,
   patchEmployee,
+  getEmployeeCounts,
 } from "../controllers/employees.controller";
 
 export const employeesRoutes = Router();
@@ -15,6 +16,12 @@ employeesRoutes.get(
   authRequired,
   requirePerm("employees", "read"),
   listEmployees,
+);
+employeesRoutes.get(
+  "/counts",
+  authRequired,
+  requirePerm("employees", "read"),
+  getEmployeeCounts,
 );
 employeesRoutes.get(
   "/:id",
