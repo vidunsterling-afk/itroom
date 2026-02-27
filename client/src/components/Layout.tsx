@@ -2,9 +2,18 @@ import { useAuth } from "../context/useAuth";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Building2, LogOut, User, ChevronDown, ArrowLeft } from "lucide-react";
 import { useEffect, useState } from "react";
-import { Bell } from "./animate-ui/icons/bell";
 import { apiFetch } from "../lib/api";
 import { getAccessToken } from "../lib/auth";
+import { Send as SendAnimated } from "./animate-ui/icons/send";
+import { AnimatePresence, motion } from "framer-motion";
+import {
+  RefreshCw,
+  AlertCircle,
+  Inbox,
+  CheckCircle,
+  XCircle,
+  ChevronRight,
+} from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -19,7 +28,7 @@ export default function Layout({ children }: LayoutProps) {
   const [showNotifMenu, setShowNotifMenu] = useState(false);
   const [notifLoading, setNotifLoading] = useState(false);
   const [notifErr, setNotifErr] = useState<string | null>(null);
-  const [hasNot, setHasNot] = useState(false);
+  const [notiCount, setNotiCount] = useState<number | 0>(0);
 
   type EmailLogItem = {
     _id: string;
@@ -51,7 +60,7 @@ export default function Layout({ children }: LayoutProps) {
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      setHasNot(data.total > 0);
+      setNotiCount(data.total);
     } catch (e: unknown) {
       console.error(
         e instanceof Error ? e.message : "Failed to load email log counts",
@@ -84,6 +93,24 @@ export default function Layout({ children }: LayoutProps) {
       setNotifLoading(false);
     }
   }
+
+  // -------- motion variants (smooth open/close) --------
+  const menuMotion = {
+    hidden: { opacity: 0, y: 10, scale: 0.98 },
+    visible: { opacity: 1, y: 0, scale: 1 },
+    exit: { opacity: 0, y: 8, scale: 0.98 },
+  } as const;
+
+  const menuTransition = {
+    duration: 0.18,
+    ease: [0.2, 0.8, 0.2, 1],
+  } as const;
+
+  const backdropMotion = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1 },
+    exit: { opacity: 0 },
+  } as const;
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-100">
@@ -131,118 +158,211 @@ export default function Layout({ children }: LayoutProps) {
                       onClick={() => {
                         const next = !showNotifMenu;
                         setShowNotifMenu(next);
-                        if (next) loadEmailLogs(10); // fetch when opening
+                        if (next) loadEmailLogs(10);
                       }}
-                      className="relative p-2 rounded-lg hover:bg-slate-800 transition-colors group"
+                      className="relative p-2 rounded-lg hover:bg-slate-800/70 transition-all duration-200 group focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:ring-offset-2 focus:ring-offset-slate-950"
                       aria-label="Notifications"
+                      aria-expanded={showNotifMenu}
                     >
-                      <Bell
-                        className="w-5 h-5 text-slate-400 group-hover:text-slate-300"
-                        animate
-                        loop={hasNot}
-                      />
+                      <SendAnimated className="w-5 h-5 text-slate-400 group-hover:text-slate-300 transition-colors" />
 
-                      {/* Optional: blue dot if any FAILED in last fetch */}
-                      {notifItems.some((x) => x.status === "FAILED") && (
-                        <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-blue-400 rounded-full ring-2 ring-slate-950" />
+                      {/* Notification indicator - shows if there are failed emails OR unread count */}
+                      {(notifItems.some((x) => x.status === "FAILED") ||
+                        notiCount > 0) && (
+                        <span className="absolute top-1.5 right-1.5 flex">
+                          <span className="relative flex h-2.5 w-2.5">
+                            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400/75 opacity-75"></span>
+                            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-blue-500 ring-2 ring-slate-950"></span>
+                          </span>
+                        </span>
                       )}
                     </button>
 
-                    {showNotifMenu && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-40"
-                          onClick={() => setShowNotifMenu(false)}
-                        />
+                    <AnimatePresence>
+                      {showNotifMenu && (
+                        <>
+                          {/* Backdrop */}
+                          <motion.div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowNotifMenu(false)}
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            transition={{ duration: 0.15 }}
+                          />
 
-                        <div className="absolute right-0 mt-2 w-96 max-w-[90vw] rounded-xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden z-50">
-                          {/* Header */}
-                          <div className="px-3 py-2 border-b border-slate-800 flex items-center justify-between">
-                            <p className="text-sm font-medium text-slate-200">
-                              Email Logs
-                            </p>
-                            <button
-                              onClick={() => loadEmailLogs(10)}
-                              className="text-xs text-slate-400 hover:text-slate-200"
-                            >
-                              Refresh
-                            </button>
-                          </div>
-
-                          {/* Body */}
-                          <div className="max-h-80 overflow-auto">
-                            {notifLoading ? (
-                              <div className="p-3 text-sm text-slate-400">
-                                Loading...
+                          {/* Menu */}
+                          <motion.div
+                            className="absolute right-0 mt-2 w-96 max-w-[calc(100vw-2rem)] rounded-xl bg-slate-900 border border-slate-800/50 shadow-2xl overflow-hidden z-50 backdrop-blur-sm"
+                            initial={{ opacity: 0, scale: 0.95, y: -10 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: -10 }}
+                            transition={{ duration: 0.15, ease: "easeOut" }}
+                            style={{ transformOrigin: "top right" }}
+                          >
+                            {/* Header */}
+                            <div className="px-4 py-3 border-b border-slate-800/50 flex items-center justify-between bg-slate-900/95">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-slate-200">
+                                  Email Logs
+                                </p>
+                                {notiCount > 0 && (
+                                  <span className="text-xs px-1.5 py-0.5 rounded-full bg-blue-500/10 text-blue-400 border border-blue-500/20">
+                                    {notiCount} new
+                                  </span>
+                                )}
                               </div>
-                            ) : notifErr ? (
-                              <div className="p-3 text-sm text-red-400">
-                                {notifErr}
-                              </div>
-                            ) : notifItems.length === 0 ? (
-                              <div className="p-3 text-sm text-slate-400">
-                                No logs yet.
-                              </div>
-                            ) : (
-                              <div className="p-2 space-y-1">
-                                {notifItems.map((n) => (
-                                  <div
-                                    key={n._id}
-                                    className="rounded-lg border border-slate-800/60 hover:border-slate-700 hover:bg-slate-800/30 transition-colors p-2"
-                                  >
-                                    <div className="flex items-start justify-between gap-2">
-                                      <div className="min-w-0">
-                                        <p className="text-sm text-slate-200 truncate">
-                                          {n.subject}
-                                        </p>
-                                        <p className="text-xs text-slate-500 truncate">
-                                          To: {n.to?.join(", ") || "-"}
-                                        </p>
-                                      </div>
+                              <button
+                                onClick={() => loadEmailLogs(10)}
+                                className="text-xs px-2 py-1 rounded-md text-slate-400 hover:text-slate-200 hover:bg-slate-800/70 transition-colors flex items-center gap-1"
+                                disabled={notifLoading}
+                              >
+                                <RefreshCw
+                                  className={`w-3 h-3 ${notifLoading ? "animate-spin" : ""}`}
+                                />
+                                Refresh
+                              </button>
+                            </div>
 
-                                      <span
-                                        className={[
-                                          "text-[11px] px-2 py-0.5 rounded-full border",
-                                          n.status === "SENT"
-                                            ? "text-emerald-300 border-emerald-500/30 bg-emerald-500/10"
-                                            : "text-red-300 border-red-500/30 bg-red-500/10",
-                                        ].join(" ")}
-                                      >
-                                        {n.status}
-                                      </span>
-                                    </div>
-
-                                    {n.status === "FAILED" && n.error ? (
-                                      <p className="mt-1 text-xs text-red-400 line-clamp-2">
-                                        {n.error}
-                                      </p>
-                                    ) : null}
-
-                                    <p className="mt-1 text-[11px] text-slate-500">
-                                      {new Date(n.createdAt).toLocaleString()}
-                                    </p>
+                            {/* Body */}
+                            <div className="max-h-96 overflow-y-auto overscroll-contain">
+                              {notifLoading ? (
+                                <div className="flex flex-col items-center justify-center py-8 px-4">
+                                  <div className="w-8 h-8 border-2 border-blue-500/30 border-t-blue-500 rounded-full animate-spin mb-3" />
+                                  <p className="text-sm text-slate-400">
+                                    Loading logs...
+                                  </p>
+                                </div>
+                              ) : notifErr ? (
+                                <div className="p-4 text-center">
+                                  <div className="inline-flex items-center justify-center w-10 h-10 rounded-full bg-red-500/10 mb-3">
+                                    <AlertCircle className="w-5 h-5 text-red-400" />
                                   </div>
-                                ))}
+                                  <p className="text-sm text-red-400 mb-2">
+                                    Failed to load
+                                  </p>
+                                  <p className="text-xs text-slate-500">
+                                    {notifErr}
+                                  </p>
+                                  <button
+                                    onClick={() => loadEmailLogs(10)}
+                                    className="mt-3 text-xs text-slate-400 hover:text-slate-200 underline underline-offset-2"
+                                  >
+                                    Try again
+                                  </button>
+                                </div>
+                              ) : notifItems.length === 0 ? (
+                                <div className="flex flex-col items-center justify-center py-8 px-4">
+                                  <div className="w-10 h-10 rounded-full bg-slate-800/50 flex items-center justify-center mb-3">
+                                    <Inbox className="w-5 h-5 text-slate-500" />
+                                  </div>
+                                  <p className="text-sm text-slate-400">
+                                    No email logs yet
+                                  </p>
+                                  <p className="text-xs text-slate-500 mt-1">
+                                    Sent emails will appear here
+                                  </p>
+                                </div>
+                              ) : (
+                                <div className="divide-y divide-slate-800/50">
+                                  {notifItems.map((n, index) => (
+                                    <motion.div
+                                      key={n._id}
+                                      initial={{ opacity: 0, y: -10 }}
+                                      animate={{ opacity: 1, y: 0 }}
+                                      transition={{ delay: index * 0.03 }}
+                                      className="p-3 hover:bg-slate-800/30 transition-colors cursor-pointer"
+                                      onClick={() => {
+                                        // Optional: handle click on individual log
+                                        console.log("View log:", n._id);
+                                      }}
+                                    >
+                                      <div className="flex items-start gap-3">
+                                        {/* Status icon */}
+                                        <div
+                                          className={`flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center ${
+                                            n.status === "SENT"
+                                              ? "bg-emerald-500/10"
+                                              : "bg-red-500/10"
+                                          }`}
+                                        >
+                                          {n.status === "SENT" ? (
+                                            <CheckCircle className="w-4 h-4 text-emerald-400" />
+                                          ) : (
+                                            <XCircle className="w-4 h-4 text-red-400" />
+                                          )}
+                                        </div>
+
+                                        {/* Content */}
+                                        <div className="flex-1 min-w-0">
+                                          <div className="flex items-start justify-between gap-2">
+                                            <p className="text-sm font-medium text-slate-200 truncate">
+                                              {n.subject || "(No subject)"}
+                                            </p>
+                                            <span
+                                              className={`text-[10px] px-2 py-0.5 rounded-full font-medium whitespace-nowrap ${
+                                                n.status === "SENT"
+                                                  ? "text-emerald-300 bg-emerald-500/10 border border-emerald-500/20"
+                                                  : "text-red-300 bg-red-500/10 border border-red-500/20"
+                                              }`}
+                                            >
+                                              {n.status}
+                                            </span>
+                                          </div>
+
+                                          <p className="text-xs text-slate-500 truncate mt-0.5">
+                                            To:{" "}
+                                            {n.to?.join(", ") ||
+                                              "No recipients"}
+                                          </p>
+
+                                          {n.status === "FAILED" && n.error && (
+                                            <p className="text-xs text-red-400 line-clamp-2 mt-1.5 bg-red-500/5 p-1.5 rounded">
+                                              {n.error}
+                                            </p>
+                                          )}
+
+                                          <p className="text-[10px] text-slate-600 mt-1.5">
+                                            {new Date(
+                                              n.createdAt,
+                                            ).toLocaleString(undefined, {
+                                              month: "short",
+                                              day: "numeric",
+                                              hour: "2-digit",
+                                              minute: "2-digit",
+                                            })}
+                                          </p>
+                                        </div>
+                                      </div>
+                                    </motion.div>
+                                  ))}
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Footer */}
+                            {notifItems.length > 0 && (
+                              <div className="px-3 py-2 border-t border-slate-800/50 bg-slate-900/95 flex justify-between items-center">
+                                <span className="text-xs text-slate-500">
+                                  {notifItems.length} log
+                                  {notifItems.length !== 1 ? "s" : ""}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    // navigate to full email logs page
+                                    setShowNotifMenu(false);
+                                  }}
+                                  className="text-xs text-slate-400 hover:text-slate-200 transition-colors flex items-center gap-1"
+                                >
+                                  View all
+                                  <ChevronRight className="w-3 h-3" />
+                                </button>
                               </div>
                             )}
-                          </div>
-
-                          {/* Footer */}
-                          <div className="px-3 py-2 border-t border-slate-800 flex justify-end">
-                            <button
-                              onClick={() => {
-                                // optional: navigate to a full email log page
-                                // navigate("/email-logs");
-                                setShowNotifMenu(false);
-                              }}
-                              className="text-xs text-slate-400 hover:text-slate-200"
-                            >
-                              View all
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
 
                   {/* Profile Dropdown */}
@@ -267,40 +387,55 @@ export default function Layout({ children }: LayoutProps) {
                       <ChevronDown className="w-4 h-4 text-slate-500" />
                     </button>
 
-                    {/* Dropdown Menu */}
-                    {showProfileMenu && (
-                      <>
-                        <div
-                          className="fixed inset-0 z-40"
-                          onClick={() => setShowProfileMenu(false)}
-                        />
-                        <div className="absolute right-0 mt-2 w-56 rounded-xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden z-50">
-                          <div className="p-2">
-                            <div className="px-3 py-2 mb-1 border-b border-slate-800">
-                              <p className="text-xs text-slate-500">
-                                Signed in as
-                              </p>
-                              <p className="text-sm font-medium text-white truncate">
-                                {user.username}
-                              </p>
+                    <AnimatePresence>
+                      {showProfileMenu && (
+                        <>
+                          <motion.div
+                            className="fixed inset-0 z-40"
+                            onClick={() => setShowProfileMenu(false)}
+                            variants={backdropMotion}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            transition={{ duration: 0.12, ease: "easeOut" }}
+                          />
+
+                          <motion.div
+                            className="absolute right-0 mt-4 w-56 rounded-xl bg-slate-900 border border-slate-800 shadow-xl overflow-hidden z-50"
+                            variants={menuMotion}
+                            initial="hidden"
+                            animate="visible"
+                            exit="exit"
+                            transition={menuTransition}
+                            style={{ transformOrigin: "top right" }}
+                          >
+                            <div className="p-2">
+                              <div className="px-3 py-2 mb-1 border-b border-slate-800">
+                                <p className="text-xs text-slate-500">
+                                  Signed in as
+                                </p>
+                                <p className="text-sm font-medium text-white truncate">
+                                  {user.username}
+                                </p>
+                              </div>
+
+                              <div className="border-t border-slate-800 my-1" />
+
+                              <button
+                                onClick={() => {
+                                  signOut();
+                                  setShowProfileMenu(false);
+                                }}
+                                className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 rounded-lg flex items-center space-x-2 transition-colors"
+                              >
+                                <LogOut className="w-4 h-4" />
+                                <span>Logout</span>
+                              </button>
                             </div>
-
-                            <div className="border-t border-slate-800 my-1" />
-
-                            <button
-                              onClick={() => {
-                                signOut();
-                                setShowProfileMenu(false);
-                              }}
-                              className="w-full px-3 py-2 text-left text-sm text-red-400 hover:bg-red-500/10 rounded-lg flex items-center space-x-2 transition-colors"
-                            >
-                              <LogOut className="w-4 h-4" />
-                              <span>Logout</span>
-                            </button>
-                          </div>
-                        </div>
-                      </>
-                    )}
+                          </motion.div>
+                        </>
+                      )}
+                    </AnimatePresence>
                   </div>
                 </>
               ) : (

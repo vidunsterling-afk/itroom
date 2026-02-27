@@ -6,6 +6,24 @@ html {
   background-color: #020517;
 }
 
+@media print {
+  body * {
+    visibility: hidden !important;
+  }
+
+  .print-page,
+  .print-page * {
+    visibility: visible !important;
+  }
+
+  .print-page {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+}
+
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;
 }

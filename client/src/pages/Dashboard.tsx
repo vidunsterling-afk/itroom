@@ -17,6 +17,7 @@ import {
   Wrench,
   Fingerprint,
   BarChart3,
+  File,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { getAccessToken } from "../lib/auth";
@@ -255,6 +256,28 @@ export default function Dashboard() {
 
         {/* Module Access Sections */}
         <div className="space-y-8">
+          {/* Documentation Section */}
+          <div>
+            <div className="flex items-center mb-4">
+              <File className="w-5 h-5 text-green-400 mr-2" />
+              <h2 className="text-lg font-semibold text-white">
+                Documentation & Management
+              </h2>
+              <div className="ml-4 flex-1 h-px bg-gradient-to-r from-slate-800 to-transparent" />
+            </div>
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              <HasRole roles={["admin"]}>
+                <DashboardNavCard
+                  to="/handover"
+                  title="Asset Handover"
+                  description="Assets handover document generator"
+                  icon={<File className="w-6 h-6 text-green-400" />}
+                  badge="Admin"
+                />
+              </HasRole>
+            </div>
+          </div>
+
           {/* Administration Section */}
           <div>
             <div className="flex items-center mb-4">

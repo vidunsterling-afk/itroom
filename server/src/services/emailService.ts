@@ -1,7 +1,12 @@
+// services/sendEmail.ts (or wherever this file is)
 import "isomorphic-fetch";
 import { Client } from "@microsoft/microsoft-graph-client";
 import { ClientSecretCredential } from "@azure/identity";
-import { logEmailSent, logEmailFailed } from "../utils/emailLogger";
+import {
+  logEmailSent,
+  logEmailFailed,
+  logEmailSkipped,
+} from "../utils/emailLogger";
 
 export type EmailRecipients = string | string[];
 
@@ -14,6 +19,14 @@ export interface SendEmailInput {
 }
 
 type GraphRecipient = { emailAddress: { address: string } };
+
+// ✅ ADD: env-controlled stop switch
+function isEmailSendingDisabled(): boolean {
+  const v = String(process.env.EMAIL_SENDING_DISABLED ?? "")
+    .trim()
+    .toLowerCase();
+  return v === "1" || v === "true" || v === "yes" || v === "on";
+}
 
 const credential = new ClientSecretCredential(
   process.env.AZURE_TENANT_ID!,
@@ -56,6 +69,12 @@ export async function sendEmail(input: SendEmailInput): Promise<void> {
   if (!to) throw new Error("Missing required field: to");
   if (!subject?.trim()) throw new Error("Missing required field: subject");
   if (!html?.trim()) throw new Error("Missing required field: html");
+
+  // ✅ TEMP STOP: don't send, don't fail, don't throw
+  if (isEmailSendingDisabled()) {
+    await logEmailSkipped({ to, cc, subject });
+    return;
+  }
 
   const sender = assertEnv("SENDER_EMAIL");
 

@@ -23,6 +23,7 @@ import FingerprintEnrollmentDetail from "./pages/FingerprintEnrollmentDetail";
 import FingerprintEnrollmentCreate from "./pages/FingerprintEnrollmentCreate";
 import FingerprintEnrollments from "./pages/FingerprintEnrollments";
 import FingerprintMachines from "./pages/FingerprintMachines";
+import AssetHandover from "./pages/AssetHandover";
 
 // Tests
 import TestEmail from "./components/TestSendEmail";
@@ -205,6 +206,14 @@ export default function App() {
             element={
               <RoleRoute allow={["admin", "auditor", "staff"]}>
                 <FingerprintEnrollmentDetail />
+              </RoleRoute>
+            }
+          />
+          <Route
+            path="/handover"
+            element={
+              <RoleRoute allow={["admin", "auditor", "staff"]}>
+                <AssetHandover />
               </RoleRoute>
             }
           />
